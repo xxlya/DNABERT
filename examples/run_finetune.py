@@ -34,6 +34,8 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, Tenso
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
+import pdb
+
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
@@ -457,7 +459,6 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
                 eval_result = args.data_dir.split('/')[-1] + " "
             else:
                 eval_result = ""
-
             logger.info("***** Eval results {} *****".format(prefix))
             for key in sorted(result.keys()):
                 logger.info("  %s = %s", key, str(result[key]))
@@ -681,6 +682,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     processor = processors[task]()
     output_mode = output_modes[task]
     # Load data features from cache or dataset file
+    # pdb.set_trace()
     cached_features_file = os.path.join(
         args.data_dir,
         "cached_{}_{}_{}_{}".format(
@@ -699,6 +701,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
             str(task),
         ),
     )
+    pdb.set_trace()
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
@@ -710,9 +713,8 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
             label_list[1], label_list[2] = label_list[2], label_list[1]
         examples = (
             processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
-        )   
+        )
 
-        
         print("finish loading examples")
 
         # params for convert_examples_to_features
@@ -787,21 +789,21 @@ def main():
     # Required parameters
     parser.add_argument(
         "--data_dir",
-        default=None,
+        default='sample_data/ft/prom-core/6',
         type=str,
-        required=True,
+        required=False,
         help="The input data dir. Should contain the .tsv files (or other data files) for the task.",
     )
     parser.add_argument(
         "--model_type",
-        default=None,
+        default='dna',
         type=str,
-        required=True,
+        required=False,
         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
     )
     parser.add_argument(
         "--n_process",
-        default=2,
+        default=8,
         type=int,
         help="number of processes used for data process",
     )
@@ -810,23 +812,23 @@ def main():
     )
     parser.add_argument(
         "--model_name_or_path",
-        default=None,
+        default='6-new-12w-0',
         type=str,
-        required=True,
+        required=False,
         help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(ALL_MODELS),
     )
     parser.add_argument(
         "--task_name",
-        default=None,
+        default='dnaprom',
         type=str,
-        required=True,
+        required=False,
         help="The name of the task to train selected in the list: " + ", ".join(processors.keys()),
     )
     parser.add_argument(
         "--output_dir",
-        default=None,
+        default='./ft/prom-core/6',
         type=str,
-        required=True,
+        required=False,
         help="The output directory where the model predictions and checkpoints will be written.",
     )
     
@@ -867,7 +869,7 @@ def main():
     )
     parser.add_argument(
         "--max_seq_length",
-        default=128,
+        default=512,
         type=int,
         help="The maximum total input sequence length after tokenization. Sequences longer "
         "than this will be truncated, sequences shorter will be padded.",
@@ -886,13 +888,13 @@ def main():
     )
 
     parser.add_argument(
-        "--per_gpu_train_batch_size", default=8, type=int, help="Batch size per GPU/CPU for training.",
+        "--per_gpu_train_batch_size", default=16, type=int, help="Batch size per GPU/CPU for training.",
     )
     parser.add_argument(
-        "--per_gpu_eval_batch_size", default=8, type=int, help="Batch size per GPU/CPU for evaluation.",
+        "--per_gpu_eval_batch_size", default=16, type=int, help="Batch size per GPU/CPU for evaluation.",
     )
     parser.add_argument(
-        "--per_gpu_pred_batch_size", default=8, type=int, help="Batch size per GPU/CPU for prediction.",
+        "--per_gpu_pred_batch_size", default=16, type=int, help="Batch size per GPU/CPU for prediction.",
     )
     parser.add_argument(
         "--early_stop", default=0, type=int, help="set this to a positive integet if you want to perfrom early stop. The model will stop \
@@ -910,7 +912,7 @@ def main():
         default=1,
         help="Number of updates steps to accumulate before performing a backward/update pass.",
     )
-    parser.add_argument("--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam.")
+    parser.add_argument("--learning_rate", default=2e-4, type=float, help="The initial learning rate for Adam.")
     parser.add_argument("--weight_decay", default=0.0, type=float, help="Weight decay if we apply some.")
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
     parser.add_argument("--beta1", default=0.9, type=float, help="Beta1 for Adam optimizer.")
@@ -1089,6 +1091,7 @@ def main():
 
         logger.info("Training/evaluation parameters %s", args)
 
+    # pdb.set_trace()
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)

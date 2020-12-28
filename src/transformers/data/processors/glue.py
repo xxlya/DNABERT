@@ -592,6 +592,31 @@ class WnliProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+# Implement DeepSea Processor by Xiaoxiao
+class DeepSeaProcessor(DataProcessor):
+    """Processor for the DNA deepsea data"""
+
+    def get_labels(self):
+        return ["0", "1"]  # we  have 2002 dim output
+
+    def get_train_examples(self, data_dir):
+        logger.info("LOOKING AT {}".format(os.path.join(data_dir, "train.tsv")))
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+    def get_dev_examples(self, data_dir):
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[0]
+            label = line[1]
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
 
 glue_tasks_num_labels = {
     "cola": 2,
@@ -607,6 +632,7 @@ glue_tasks_num_labels = {
     "dna690":2,
     "dnapair":2,
     "dnasplice":3,
+    "deepsea":2 # Please check
 }
 
 glue_processors = {
@@ -624,6 +650,7 @@ glue_processors = {
     "dna690": DnaPromProcessor,
     "dnapair": DnaPairProcessor,
     "dnasplice": DnaSpliceProcessor,
+    "deepsea": DeepSeaProcessor
 }
 
 glue_output_modes = {
@@ -641,4 +668,5 @@ glue_output_modes = {
     "dna690": "classification",
     "dnapair": "classification",
     "dnasplice": "classification",
+    "deepsea": "classification"
 }
