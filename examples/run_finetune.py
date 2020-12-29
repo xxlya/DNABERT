@@ -1135,7 +1135,14 @@ def main():
         torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         # Load a trained model and vocabulary that you have fine-tuned
-        model = model_class.from_pretrained(args.output_dir)
+        print(model)
+        pdb.set_trace()
+        if args.task_name == 'deepsea':
+            model.classifier = torch.nn.Linear(in_features=768, out_features=2, bias=True) # changed back
+            model = model_class.from_pretrained(args.output_dir)
+            # model.classifier = torch.nn.Linear(in_features=768, out_features=2002, bias=True)  # 2002 is hard-coded, attention!!
+        else:
+            model = model_class.from_pretrained(args.output_dir)
         tokenizer = tokenizer_class.from_pretrained(args.output_dir)
         model.to(args.device)
 
