@@ -120,6 +120,8 @@ def glue_convert_examples_to_features(
             label = label_map[example.label]
         elif output_mode == "regression":
             label = float(example.label)
+        elif output_mode == "multilabel":
+            label = [int(n) for n in example.label]
         else:
             raise KeyError(output_mode)
 
@@ -129,7 +131,8 @@ def glue_convert_examples_to_features(
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
             logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
             logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
-            logger.info("label: %s (id = %d)" % (example.label, label))
+            if output_mode != "multilabel":
+                logger.info("label: %s (id = %d)" % (example.label, label))
 
         features.append(
             InputFeatures(
@@ -613,8 +616,8 @@ class DeepSeaProcessor(DataProcessor):
             if i == 0:
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a = line[0]
-            label = line[1]
+            text_a = line[0].split('  ')[0]
+            label = line[0].split('  ')[1]
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
@@ -668,5 +671,5 @@ glue_output_modes = {
     "dna690": "classification",
     "dnapair": "classification",
     "dnasplice": "classification",
-    "deepsea": "classification"
+    "deepsea": "multilabel"
 }

@@ -46,6 +46,7 @@ from transformers import (
     BertForSequenceClassification,
     BertForLongSequenceClassification,
     BertForLongSequenceClassificationCat,
+    BertForDeepSeaClassification,
     BertTokenizer,
     DNATokenizer,
     DistilBertConfig,
@@ -111,6 +112,7 @@ MODEL_CLASSES = {
     "albert": (AlbertConfig, AlbertForSequenceClassification, AlbertTokenizer),
     "xlmroberta": (XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer),
     "flaubert": (FlaubertConfig, FlaubertForSequenceClassification, FlaubertTokenizer),
+    "deepsea": (BertConfig, BertForDeepSeaClassification,DNATokenizer)
 }
                     
 TOKEN_ID_GROUP = ["bert", "dnalong", "dnalongcat", "xlnet", "albert"] 
@@ -271,6 +273,8 @@ def train(args, train_dataset, model, tokenizer):
                 inputs["token_type_ids"] = (
                     batch[2] if args.model_type in TOKEN_ID_GROUP else None
                 )  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
+            # import pdb
+            # pdb.set_trace()
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
@@ -381,6 +385,7 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
     eval_outputs_dirs = (args.output_dir, args.output_dir + "-MM") if args.task_name == "mnli" else (args.output_dir,)
     if args.task_name[:3] == "dna":
         softmax = torch.nn.Softmax(dim=1)
+    sigmoid = torch.nn.Sigmoid()
         
 
     results = {}
@@ -440,6 +445,11 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
             elif args.task_name == "dnasplice":
                 probs = softmax(torch.tensor(preds, dtype=torch.float32)).numpy()
             preds = np.argmax(preds, axis=1)
+
+        elif args.output_mode == "multilabel":
+            probs = sigmoid(torch.tensor(preds, dtype=torch.float32)).numpy()
+            preds = np.argmax(preds)
+
         elif args.output_mode == "regression":
             preds = np.squeeze(preds)
         if args.do_ensemble_pred:
@@ -479,6 +489,8 @@ def predict(args, model, tokenizer, prefix=""):
     if not os.path.exists(args.predict_dir):
         os.makedirs(args.predict_dir)
     softmax = torch.nn.Softmax(dim=1)
+    sigmoid = torch.nn.Sigmoid()
+
 
     predictions = {}
     for pred_task, pred_output_dir in zip(pred_task_names, pred_outputs_dirs):
@@ -535,6 +547,10 @@ def predict(args, model, tokenizer, prefix=""):
             preds = np.argmax(preds, axis=1)
         elif args.output_mode == "regression":
             preds = np.squeeze(preds)
+        elif args.output_mode == "multilabel":
+            probs = sigmoid(torch.tensor(preds, dtype=torch.float32)).numpy()
+            preds = np.argmax(preds)
+
 
         if args.do_ensemble_pred:
             result = compute_metrics(pred_task, preds, out_label_ids, probs[:,1])
@@ -570,6 +586,7 @@ def visualize(args, model, tokenizer, kmer, prefix=""):
     if not os.path.exists(args.predict_dir):
         os.makedirs(args.predict_dir)
     softmax = torch.nn.Softmax(dim=1)
+    sigmoid = torch.nn.Sigmoid()
     
 
     for pred_task, pred_output_dir in zip(pred_task_names, pred_outputs_dirs):
@@ -701,7 +718,6 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
             str(task),
         ),
     )
-    pdb.set_trace()
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Loading features from cached file %s", cached_features_file)
         features = torch.load(cached_features_file)
@@ -714,7 +730,6 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
         examples = (
             processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
         )
-
         print("finish loading examples")
 
         # params for convert_examples_to_features
@@ -774,11 +789,10 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
     all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
     all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-    if output_mode == "classification":
+    if output_mode == "classification" or output_mode == "multilabel":
         all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
     elif output_mode == "regression":
         all_labels = torch.tensor([f.label for f in features], dtype=torch.float)
-
     dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
     return dataset
 
@@ -1083,7 +1097,11 @@ def main():
             config=config,
             cache_dir=args.cache_dir if args.cache_dir else None,
         )
-
+        print(model)
+        if args.task_name == 'deepsea':
+            model.classifier = torch.nn.Linear(in_features=768, out_features=2002, bias=True) # 2002 is hard-coded, attention!!
+            print(model)
+            print('updated')
         if args.local_rank == 0:
             torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 

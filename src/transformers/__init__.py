@@ -157,6 +157,7 @@ if is_torch_available():
         BertForSequenceClassification,
         BertForLongSequenceClassification,
         BertForLongSequenceClassificationCat,
+        BertForDeepSeaClassification,
         BertForMultipleChoice,
         BertForTokenClassification,
         BertForQuestionAnswering,
