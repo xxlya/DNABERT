@@ -1,3 +1,19 @@
+# Updates
+# 1. Deepsea data parcellation
+```
+cd example
+python split_deepsea.py
+```
+# 2. Run 2nd stage pretrain
+I have created run_finetune.py, modified 1) src/transformers/data/metrics/__init__.py; 2)src/transformers/modeling_bert.py; src/transformers/processor/glue.py
+```
+cd example
+bash deepsea.sh
+```
+
+
+
+-------------
 # DNABERT
 This repository includes the implementation of 'DNABERT: pre-trained Bidirectional Encoder Representations from Transformers model for DNA-language in genome'. Please cite our paper if you use the models or codes. The repo is still actively under development, so please kindly report if there is any issue encountered.
 
