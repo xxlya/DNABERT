@@ -18,6 +18,8 @@
 import logging
 import os
 
+import numpy as np
+
 from ...file_utils import is_tf_available
 from .utils import DataProcessor, InputExample, InputFeatures
 
@@ -600,7 +602,7 @@ class DeepSeaProcessor(DataProcessor):
     """Processor for the DNA deepsea data"""
 
     def get_labels(self):
-        return ["0", "1"]  # we  have 2002 dim output
+        return np.zeros(2002)  # we  have 2002 dim output
 
     def get_train_examples(self, data_dir):
         logger.info("LOOKING AT {}".format(os.path.join(data_dir, "train.tsv")))

@@ -436,6 +436,8 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
                 out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
 
         eval_loss = eval_loss / nb_eval_steps
+
+        # pdb.set_trace()
         if args.output_mode == "classification":
             if args.task_name[:3] == "dna" and args.task_name != "dnasplice":
                 if args.do_ensemble_pred:
@@ -448,10 +450,10 @@ def evaluate(args, model, tokenizer, prefix="", evaluate=True):
 
         elif args.output_mode == "multilabel":
             probs = sigmoid(torch.tensor(preds, dtype=torch.float32)).numpy()
-            preds = np.argmax(preds)
-
+            preds = (preds>0.5).astype(int)
         elif args.output_mode == "regression":
             preds = np.squeeze(preds)
+
         if args.do_ensemble_pred:
             result = compute_metrics(eval_task, preds, out_label_ids, probs[:,1])
         else:
@@ -1135,14 +1137,15 @@ def main():
         torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         # Load a trained model and vocabulary that you have fine-tuned
-        print(model)
-        pdb.set_trace()
-        if args.task_name == 'deepsea':
-            model.classifier = torch.nn.Linear(in_features=768, out_features=2, bias=True) # changed back
-            model = model_class.from_pretrained(args.output_dir)
-            # model.classifier = torch.nn.Linear(in_features=768, out_features=2002, bias=True)  # 2002 is hard-coded, attention!!
-        else:
-            model = model_class.from_pretrained(args.output_dir)
+        # print(model)
+        # pdb.set_trace()
+        # if args.task_name == 'deepsea':
+        #     # model.classifier = torch.nn.Linear(in_features=768, out_features=2, bias=True) # changed back
+        #     model = model_class.from_pretrained(args.output_dir)
+        #     # model.classifier = torch.nn.Linear(in_features=768, out_features=2002, bias=True)  # 2002 is hard-coded, attention!!
+        # else:
+        #     model = model_class.from_pretrained(args.output_dir)
+        model = model_class.from_pretrained(args.output_dir)
         tokenizer = tokenizer_class.from_pretrained(args.output_dir)
         model.to(args.device)
 

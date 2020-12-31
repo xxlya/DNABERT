@@ -96,12 +96,18 @@ if _has_sklearn:
         }
 
     def glue_compute_metrics(task_name, preds, labels, probs=None):
+
         assert len(preds) == len(labels)
         if task_name == "cola":
             return {"mcc": matthews_corrcoef(labels, preds)}
         elif task_name == "sst-2":
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name in ["dnaprom", "dna690", "dnapair"]:
+            return acc_f1_mcc_auc_aupr_pre_rec(preds, labels, probs)
+        elif task_name == "deepsea":
+            preds = preds.reshape(-1)
+            labels = labels.reshape(-1)
+            probs = probs.reshape(-1)
             return acc_f1_mcc_auc_aupr_pre_rec(preds, labels, probs)
         elif task_name == "dnasplice":
             return acc_f1_mcc_auc_pre_rec(preds, labels, probs)
